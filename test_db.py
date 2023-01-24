@@ -2,11 +2,11 @@ from sqlalchemy import create_engine
 import pandas as pd
 
 
-engine = create_engine("mysql:///root@localhost/first_db")
+engine = create_engine("mysql:///root:root@localhost/first_db")
 
 df = pd.DataFrame(
     {
-        'a': [1,2,3], 
+        'a': [1,2,3], s
         'b': [4,5,6]
     }
 
