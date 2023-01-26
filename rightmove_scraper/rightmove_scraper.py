@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 from rightmove_scraper.support_functions import (url_to_html, string_to_int, 
     sqm_from_string, sqft_from_string, save_image)
 
+from rightmove_scraper.database_setup import engine
+
 HOME_PATH = Path.home()
 
 class RightmoveScraper:
@@ -28,7 +30,7 @@ class RightmoveScraper:
     def scrape_regions(self, regions:list, save=True, verbose=True):
         for ind, region in enumerate((pbar := tqdm(regions, disable=not verbose))):
             # try: 
-            pbar.set_description(region)
+            pbar.set_description(f'{region}, {ind}')
             if ind == 0:
                 region_attributes = self.scrape_region(region, save, False)
             else:
@@ -52,16 +54,22 @@ class RightmoveScraper:
             property_ids = self.get_property_ids(region, page_n)
             if len(property_ids) == 0:
                 break
+            print(property_ids)
             page_attributes_df = self.scrape_id_list(property_ids)
             page_attributes_df["region"] = region
+            page_attributes_df["mode"] = self.mode
+            print(page_attributes_df)
             attributes_list.append(page_attributes_df)
             if verbose: print(f'page {page_n+1}')
             page_n += 1        
             
         attributes_df = pd.concat(attributes_list)
         if save: 
-            attributes_df.to_excel(f'{self.directory}/{region}_{self.region_mode}_{self.date}.xlsx')
-        return attributes_df
+            #attributes_df.to_excel(f'{self.directory}/{region}_{self.region_mode}_{self.date}.xlsx')
+            with engine.begin() as con:
+                attributes_df.to_sql('rightmove_data', con, if_exists='append', index=False)
+        else:
+            return attributes_df
 
 
     def get_property_ids(self, region:str, page_n:int):
@@ -98,7 +106,6 @@ class RightmoveScraper:
         
         property_url = f"https://www.rightmove.co.uk/properties/{property_id}#/?channel=RES_{self.mode}"
         soup = url_to_html(property_url)
-        
         info_reel = soup.find("div", {"data-test": "infoReel"})
         property_info = {}
         for i in info_reel.findAll('div', recursive=False):
@@ -124,7 +131,6 @@ class RightmoveScraper:
 
         property_info['LINK'] = property_url
         property_info['ID'] = property_id
-
         image_url = soup.find('link', {'rel': 'canonical'}).find('meta', {'property':'og:image'})['content']
         save_image(property_id, image_url, self.image_directory)
         
