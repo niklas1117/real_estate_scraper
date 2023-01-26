@@ -1,1 +1,3 @@
 scraper_venv/
+venv/
+*.ipynb

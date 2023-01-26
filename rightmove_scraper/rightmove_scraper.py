@@ -18,7 +18,7 @@ class RightmoveScraper:
     def __init__(self, buy:bool=True):
         self.mode = 'SALE' if buy else 'LET'
         self.region_mode = 'sale' if buy else 'rent'
-        self.date = date.today().strftime('%Y_%m_%d')
+        self.date = date.today()
 
         directory = 'sale_data' if buy else 'rent_data' 
         self.directory = Path.joinpath(HOME_PATH, f"rightmove/{directory}")
@@ -36,13 +36,8 @@ class RightmoveScraper:
             else:
                 these_attributes = self.scrape_region(region, save, False)
                 region_attributes = pd.concat([region_attributes, these_attributes]) 
-        #     attributes_list.append(region_attributes)
-        #         ## maybe cancel somehow if condition?
-        #     # except: 
-        #     #     pass
-        # attributes_df = pd.concat(attributes_list).reset_index(drop=True)
         print('Done!')
-        return region_attributes.reset_index(drop=True)
+        # return region_attributes.reset_index(drop=True)
         
 
 
@@ -54,22 +49,28 @@ class RightmoveScraper:
             property_ids = self.get_property_ids(region, page_n)
             if len(property_ids) == 0:
                 break
-            print(property_ids)
             page_attributes_df = self.scrape_id_list(property_ids)
-            page_attributes_df["region"] = region
-            page_attributes_df["mode"] = self.mode
-            print(page_attributes_df)
-            attributes_list.append(page_attributes_df)
-            if verbose: print(f'page {page_n+1}')
-            page_n += 1        
+            page_attributes_df["REGION"] = region
+            page_attributes_df["MODE"] = self.mode
+            page_attributes_df["DATE"] = self.date
+            page_attributes_df.drop('TENURE', axis=1, inplace=True)
+            page_attributes_df.set_index('ID',inplace=True)
+            page_attributes_df.rename({'PROPERTY TYPE': 'TYPE'}, axis=1, 
+                inplace=True)
+            if save:
+                with engine.begin() as con:
+                    page_attributes_df.to_sql('rightmove_data', con, 
+                        if_exists='append')
+            del page_attributes_df
+        #     attributes_list.append(page_attributes_df)
+        #     if verbose: print(f'page {page_n+1}')
+        #     page_n += 1        
             
-        attributes_df = pd.concat(attributes_list)
-        if save: 
-            #attributes_df.to_excel(f'{self.directory}/{region}_{self.region_mode}_{self.date}.xlsx')
-            with engine.begin() as con:
-                attributes_df.to_sql('rightmove_data', con, if_exists='append', index=False)
-        else:
-            return attributes_df
+        # attributes_df = pd.concat(attributes_list)
+        # if save: 
+        #     #attributes_df.to_excel(f'{self.directory}/{region}_{self.region_mode}_{self.date}.xlsx')
+        #     with engine.begin() as con:
+        #         attributes_df.to_sql('rightmove_data', con, if_exists='append', index=False)
 
 
     def get_property_ids(self, region:str, page_n:int):
@@ -107,20 +108,21 @@ class RightmoveScraper:
         property_url = f"https://www.rightmove.co.uk/properties/{property_id}#/?channel=RES_{self.mode}"
         soup = url_to_html(property_url)
         info_reel = soup.find("div", {"data-test": "infoReel"})
-        property_info = {}
-        for i in info_reel.findAll('div', recursive=False):
-            category_key = i.find('div').find('div').string
-            category_values = [p.string for p in i.findAll('p')]
-            if (len(category_values) == 1) & (category_key == 'SIZE'):
-                property_info['SIZE SQFT'] = sqft_from_string(category_values[0])
-            elif (len(category_values) == 2) & (category_key == 'SIZE'):
-                property_info['SIZE SQFT'] = sqft_from_string(category_values[0])
-                property_info['SIZE SQM'] = sqm_from_string(category_values[1])
-            elif ((len(category_values) == 1) 
-                    & ((category_key == 'BEDROOMS') | (category_key == 'BATHROOMS'))):
-                property_info[category_key] = string_to_int(category_values[0])
-            elif len(category_values) == 1:
-                property_info[category_key] = category_values[0]
+        property_info = {i.string: ii.string for i, ii in zip(info_reel.findAll('dt'), info_reel.findAll('dd'))}
+
+        # for i in info_reel.findAll('div', recursive=False):
+        #     category_key = i.find('div').string
+        #     category_values = [p.string for p in i.findAll('p')]
+        #     if (len(category_values) == 1) & (category_key == 'SIZE'):
+        #         property_info['SIZE SQFT'] = sqft_from_string(category_values[0])
+        #     elif (len(category_values) == 2) & (category_key == 'SIZE'):
+        #         property_info['SIZE SQFT'] = sqft_from_string(category_values[0])
+        #         property_info['SIZE SQM'] = sqm_from_string(category_values[1])
+        #     elif ((len(category_values) == 1) 
+        #             & ((category_key == 'BEDROOMS') | (category_key == 'BATHROOMS'))):
+        #         property_info[category_key] = string_to_int(category_values[0])
+        #     elif len(category_values) == 1:
+        #         property_info[category_key] = category_values[0]
             
         price = soup.findAll("article")[1].findAll("span")[0].string
         
@@ -128,11 +130,17 @@ class RightmoveScraper:
             property_info['PRICE'] = string_to_int(price)
         except ValueError:
             property_info['PRICE'] = None
+        
+        for category in ['BEDROOMS', 'BATHROOMS', 'SIZE']:
+            try:
+                property_info[category] = string_to_int(property_info[category])
+            except KeyError:
+                pass
 
         property_info['LINK'] = property_url
         property_info['ID'] = property_id
         image_url = soup.find('link', {'rel': 'canonical'}).find('meta', {'property':'og:image'})['content']
-        save_image(property_id, image_url, self.image_directory)
+        # save_image(property_id, image_url, self.image_directory)
         
         # all together
         return property_info
