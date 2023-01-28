@@ -19,7 +19,7 @@ class RightmoveScraper:
 
         self.done = []
         with engine.begin() as con:
-            query = f"""delete from rightmove.rightmove_data where date = '{self.date}'"""
+            query = f"""delete from rightmove_data where date = '{self.date.strftime('%Y%m%d')}'"""
             print(query)
             con.execute(query)
         with engine.begin() as con:
