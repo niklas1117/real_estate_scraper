@@ -5,7 +5,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from rightmove_scraper.database_setup import engine
-from rightmove_scraper.support_functions import string_to_int, url_to_html
+from rightmove_scraper.support_functions import (string_to_int, url_to_html, 
+    sqft_from_string)
 
 HOME_PATH = Path.home()
 
@@ -122,19 +123,6 @@ class RightmoveScraper:
             features = [i.string for i in soup.findAll('article')[3].findAll('ul')[0]]
         except IndexError:
             features = ['NaN']
-        # for i in info_reel.findAll('div', recursive=False):
-        #     category_key = i.find('div').string
-        #     category_values = [p.string for p in i.findAll('p')]
-        #     if (len(category_values) == 1) & (category_key == 'SIZE'):
-        #         property_info['SIZE SQFT'] = sqft_from_string(category_values[0])
-        #     elif (len(category_values) == 2) & (category_key == 'SIZE'):
-        #         property_info['SIZE SQFT'] = sqft_from_string(category_values[0])
-        #         property_info['SIZE SQM'] = sqm_from_string(category_values[1])
-        #     elif ((len(category_values) == 1) 
-        #             & ((category_key == 'BEDROOMS') | (category_key == 'BATHROOMS'))):
-        #         property_info[category_key] = string_to_int(category_values[0])
-        #     elif len(category_values) == 1:
-        #         property_info[category_key] = category_values[0]
             
         price = soup.findAll("article")[1].findAll("span")[0].string
         
@@ -143,11 +131,17 @@ class RightmoveScraper:
         except ValueError:
             property_info['PRICE'] = None
         
-        for category in ['BEDROOMS', 'BATHROOMS', 'SIZE']:
+        for category in ['BEDROOMS', 'BATHROOMS']:
             try:
                 property_info[category] = string_to_int(property_info[category])
             except KeyError:
                 pass
+        for category in ['SIZE']:
+            try:
+                property_info[category] = sqft_from_string(property_info[category])
+            except KeyError:
+                pass
+
         property_info['LINK'] = property_url
         property_info['ID'] = property_id        
         return property_info, features
