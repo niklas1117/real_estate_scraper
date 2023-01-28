@@ -51,7 +51,7 @@ class RightmoveScraper:
             print(self.done)
             if len(property_ids) == 0:
                 break
-            page_attributes_df = self.scrape_id_list(property_ids)
+            page_attributes_df, feature_dict = self.scrape_id_list(property_ids)
             page_attributes_df["REGION"] = region
             page_attributes_df["MODE"] = self.mode
             page_attributes_df["DATE"] = self.date
@@ -69,24 +69,20 @@ class RightmoveScraper:
             if save:
                 with engine.begin() as con:
                     page_attributes_df.to_sql('rightmove_data', con, 
-                        if_exists='append',
-                        index=False)
-            del page_attributes_df
-            page_n += 1
-        #     attributes_list.append(page_attributes_df)
-        #     if verbose: print(f'page {page_n+1}')
-        #     page_n += 1        
-            
-        # attributes_df = pd.concat(attributes_list)
-        # if save: 
-        #     #attributes_df.to_excel(f'{self.directory}/{region}_{self.region_mode}_{self.date}.xlsx')
-        #     with engine.begin() as con:
-        #         attributes_df.to_sql('rightmove_data', con, if_exists='append', index=False)
+                        if_exists='append', index=False)
 
+                with engine.begin() as con:
+                    for key, value in feature_dict.items():
+                        features = pd.DataFrame(data=value, columns='FEATURE')
+                        features['ID'] = key
+                        features['DATE'] = self.date
+                        features.to_sql('rightmove_features', con, 
+                            if_exists='append', index=False)
+            del page_attributes_df, features, feature_dict
+    
 
     def get_property_ids(self, region:str, page_n:int):
 
-        ## try except stuff for non existant pages
         index = page_n*24
         region_url = f"https://www.rightmove.co.uk/property-for-{self.region_mode}/{region}.html?index={index}&"
         soup = url_to_html(region_url)
@@ -104,16 +100,14 @@ class RightmoveScraper:
 
     def scrape_id_list(self, property_ids):
         attributes_list = []
-        
-        for property_id in property_ids:
-            if property_id not in self.done:
-                try:
-                    individual_attributes = self.scrape_attributes(property_id)
-                    attributes_list.append(individual_attributes)
-                except AttributeError:
-                    pass
+        for property_id in property_ids: 
+            try:
+                individual_attributes = self.scrape_attributes(property_id)
+                attributes_list.append(individual_attributes)
+            except AttributeError:
+                pass
         attributes_df = pd.DataFrame(attributes_list).reset_index(drop=True)
-        return attributes_df
+        return attributes_df, feature_dict 
 
 
     def scrape_attributes(self, property_id):
@@ -123,7 +117,7 @@ class RightmoveScraper:
         soup = url_to_html(property_url)
         info_reel = soup.find("div", {"data-test": "infoReel"})
         property_info = {i.string: ii.string for i, ii in zip(info_reel.findAll('dt'), info_reel.findAll('dd'))}
-
+        features = [i.string for i in soup.findAll('article')[3].findAll('ul')[0]]
         # for i in info_reel.findAll('div', recursive=False):
         #     category_key = i.find('div').string
         #     category_values = [p.string for p in i.findAll('p')]
@@ -150,13 +144,7 @@ class RightmoveScraper:
                 property_info[category] = string_to_int(property_info[category])
             except KeyError:
                 pass
-
         property_info['LINK'] = property_url
-        property_info['ID'] = property_id
-        image_url = soup.find('link', {'rel': 'canonical'}).find('meta', {'property':'og:image'})['content']
-        # save_image(property_id, image_url, self.image_directory)
-        
-        # all together
-        return property_info
-
+        property_info['ID'] = property_id        
+        return property_info, features
  
