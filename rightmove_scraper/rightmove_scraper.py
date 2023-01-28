@@ -23,8 +23,8 @@ class RightmoveScraper:
         self.done = []
         with engine.begin() as con:
             pd.read_sql(f"""
-                delete table rightmove_data where date = {self.date};
-                delete table rightmove_features where date = {self.date};
+                delete from rightmove_data where date = '{self.date}';
+                delete from rightmove_features where date = '{self.date}';
                 """, con)
 
 
