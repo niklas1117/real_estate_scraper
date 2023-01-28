@@ -20,12 +20,13 @@ class RightmoveScraper:
         self.region_mode = 'sale' if buy else 'rent'
         self.date = date.today()
 
-        directory = 'sale_data' if buy else 'rent_data' 
-        self.directory = Path.joinpath(HOME_PATH, f"rightmove/{directory}")
-        self.directory.mkdir(parents=True, exist_ok=True)
         self.done = []
-        self.image_directory = Path.joinpath(HOME_PATH, 'rightmove/images')
-        self.image_directory.mkdir(parents=True, exist_ok=True)
+
+        pd.read_sql(f"""
+            delete table rightmove_data where date = {self.date};
+            delete table rightmove_features where date = {self.date};
+            """)
+
 
     def scrape_regions(self, regions:list, save=True, verbose=True):
         for ind, region in enumerate((pbar := tqdm(regions, disable=not verbose))):
