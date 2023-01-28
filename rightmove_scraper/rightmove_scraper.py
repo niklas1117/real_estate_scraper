@@ -19,7 +19,9 @@ class RightmoveScraper:
 
         self.done = []
         with engine.begin() as con:
-            con.execute(f"""delete from rightmove.rightmove_data where date = '{self.date}'; delete from rightmove.rightmove_features where date = '{self.date}';""")
+            con.execute(f"""delete from rightmove.rightmove_data where date = '{self.date}'""")
+        with engine.begin() as con:
+            con.execute(f"""; delete from rightmove.rightmove_features where date = '{self.date}'""")
 
     def scrape_regions(self, regions:list, save=True, verbose=True):
         for ind, region in enumerate((pbar := tqdm(regions, disable=not verbose))):
