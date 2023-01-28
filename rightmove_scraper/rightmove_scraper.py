@@ -20,7 +20,6 @@ class RightmoveScraper:
         self.done = []
         with engine.begin() as con:
             query = f"""delete from rightmove_data where date = '{self.date.strftime('%Y%m%d')}'"""
-            print(query)
             con.execute(query)
         with engine.begin() as con:
             query = f"""delete from rightmove_features where date = '{self.date.strftime('%Y%m%d')}'"""
@@ -42,7 +41,6 @@ class RightmoveScraper:
 
 
     def scrape_region(self, region:str, save=True, verbose=True):
-        attributes_list = []
         page_n = 0
         if verbose: print(f'scraping {region} properties')
         while True:
@@ -76,7 +74,7 @@ class RightmoveScraper:
                         features['DATE'] = self.date
                         features.to_sql('rightmove_features', con, 
                             if_exists='append', index=False)
-            del page_attributes_df, features, feature_dict
+            del page_attributes_df, feature_dict
     
 
     def get_property_ids(self, region:str, page_n:int):
