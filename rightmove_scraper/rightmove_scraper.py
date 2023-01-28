@@ -21,11 +21,11 @@ class RightmoveScraper:
         self.date = date.today()
 
         self.done = []
-
-        pd.read_sql(f"""
-            delete table rightmove_data where date = {self.date};
-            delete table rightmove_features where date = {self.date};
-            """)
+        with engine.begin() as con:
+            pd.read_sql(f"""
+                delete table rightmove_data where date = {self.date};
+                delete table rightmove_features where date = {self.date};
+                """, con)
 
 
     def scrape_regions(self, regions:list, save=True, verbose=True):
