@@ -73,7 +73,7 @@ class RightmoveScraper:
 
                 with engine.begin() as con:
                     for key, value in feature_dict.items():
-                        features = pd.DataFrame(data=value, columns='FEATURE')
+                        features = pd.DataFrame(data=value, columns=['FEATURE'])
                         features['ID'] = key
                         features['DATE'] = self.date
                         features.to_sql('rightmove_features', con, 
