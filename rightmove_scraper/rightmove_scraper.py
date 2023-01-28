@@ -48,7 +48,6 @@ class RightmoveScraper:
         if verbose: print(f'scraping {region} properties')
         while True:
             property_ids = self.get_property_ids(region, page_n)
-            print(self.done)
             if len(property_ids) == 0:
                 break
             page_attributes_df, feature_dict = self.scrape_id_list(property_ids)
@@ -102,11 +101,12 @@ class RightmoveScraper:
         attributes_list = []
         feature_dict = {}
         for property_id in property_ids: 
-            try:
-                individual_attributes, feature_dict[property_id] = self.scrape_attributes(property_id)
-                attributes_list.append(individual_attributes)
-            except AttributeError:
-                pass
+            if property_id not in self.done:
+                try:
+                    individual_attributes, feature_dict[property_id] = self.scrape_attributes(property_id)
+                    attributes_list.append(individual_attributes)
+                except AttributeError:
+                    pass
         attributes_df = pd.DataFrame(attributes_list).reset_index(drop=True)
         return attributes_df, feature_dict 
 
