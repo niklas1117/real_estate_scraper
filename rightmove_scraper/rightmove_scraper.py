@@ -23,7 +23,7 @@ class RightmoveScraper:
         directory = 'sale_data' if buy else 'rent_data' 
         self.directory = Path.joinpath(HOME_PATH, f"rightmove/{directory}")
         self.directory.mkdir(parents=True, exist_ok=True)
-
+        self.done = []
         self.image_directory = Path.joinpath(HOME_PATH, 'rightmove/images')
         self.image_directory.mkdir(parents=True, exist_ok=True)
 
@@ -35,7 +35,8 @@ class RightmoveScraper:
                 region_attributes = self.scrape_region(region, save, False)
             else:
                 these_attributes = self.scrape_region(region, save, False)
-                region_attributes = pd.concat([region_attributes, these_attributes]) 
+                if these_attributes is not None:
+                    region_attributes = pd.concat([region_attributes, these_attributes]) 
         print('Done!')
         # return region_attributes.reset_index(drop=True)
         
@@ -47,21 +48,31 @@ class RightmoveScraper:
         if verbose: print(f'scraping {region} properties')
         while True:
             property_ids = self.get_property_ids(region, page_n)
+            print(self.done)
             if len(property_ids) == 0:
                 break
             page_attributes_df = self.scrape_id_list(property_ids)
             page_attributes_df["REGION"] = region
             page_attributes_df["MODE"] = self.mode
             page_attributes_df["DATE"] = self.date
-            page_attributes_df.drop('TENURE', axis=1, inplace=True)
-            page_attributes_df.set_index('ID',inplace=True)
-            page_attributes_df.rename({'PROPERTY TYPE': 'TYPE'}, axis=1, 
-                inplace=True)
+            if 'TENURE' in page_attributes_df.columns:
+                page_attributes_df.drop('TENURE', axis=1, inplace=True)
+            if 'PROPERTY TYPE' in page_attributes_df.columns:
+                page_attributes_df.rename({'PROPERTY TYPE': 'TYPE'}, axis=1, inplace=True)
+            
+            if 'SIZE AVAILABLE' in page_attributes_df.columns:
+                page_attributes_df.drop('SIZE AVAILABLE', axis=1, inplace=True)
+                
+            if 'SECTOR' in page_attributes_df.columns:
+                page_attributes_df.drop('SECTOR', axis=1, inplace=True)
+
             if save:
                 with engine.begin() as con:
                     page_attributes_df.to_sql('rightmove_data', con, 
-                        if_exists='append')
+                        if_exists='append',
+                        index=False)
             del page_attributes_df
+            page_n += 1
         #     attributes_list.append(page_attributes_df)
         #     if verbose: print(f'page {page_n+1}')
         #     page_n += 1        
@@ -93,18 +104,21 @@ class RightmoveScraper:
 
     def scrape_id_list(self, property_ids):
         attributes_list = []
-        for property_id in property_ids: 
-            try:
-                individual_attributes = self.scrape_attributes(property_id)
-                attributes_list.append(individual_attributes)
-            except AttributeError:
-                pass
+        
+        for property_id in property_ids:
+            if property_id not in self.done:
+                try:
+                    individual_attributes = self.scrape_attributes(property_id)
+                    attributes_list.append(individual_attributes)
+                except AttributeError:
+                    pass
         attributes_df = pd.DataFrame(attributes_list).reset_index(drop=True)
         return attributes_df
 
 
     def scrape_attributes(self, property_id):
         
+        self.done.append(property_id)
         property_url = f"https://www.rightmove.co.uk/properties/{property_id}#/?channel=RES_{self.mode}"
         soup = url_to_html(property_url)
         info_reel = soup.find("div", {"data-test": "infoReel"})
