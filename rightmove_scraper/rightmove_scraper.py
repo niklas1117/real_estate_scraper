@@ -20,9 +20,9 @@ class RightmoveScraper:
         self.done = []
         with engine.begin() as con:
             pd.read_sql(f"""
-                delete from rightmove_data where date = '{self.date}';""", con)
+                delete from rightmove_data where date = '{self.date}'; select 2;""", con)
             pd.read_sql(f"""
-                delete from rightmove_features where date = '{self.date}'; """, con)
+                delete from rightmove_features where date = '{self.date}'; select 2;""", con)
 
     def scrape_regions(self, regions:list, save=True, verbose=True):
         for ind, region in enumerate((pbar := tqdm(regions, disable=not verbose))):
