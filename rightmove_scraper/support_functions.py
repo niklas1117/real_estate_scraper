@@ -35,7 +35,8 @@ def sqft_from_string(s):
     if (first_clean.isnumeric()) or (len(first_clean.split(',')) == 2):
         return string_to_int(first_clean)
     else:    
-        return f'work on this - {s}'
+        second_clean = first_clean.split(' -')[0]
+        return string_to_int(second_clean)
 
 def save_image(property_id, url, folder):
     try:
