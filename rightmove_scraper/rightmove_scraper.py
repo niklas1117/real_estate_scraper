@@ -118,7 +118,10 @@ class RightmoveScraper:
         soup = url_to_html(property_url)
         info_reel = soup.find("div", {"data-test": "infoReel"})
         property_info = {i.string: ii.string for i, ii in zip(info_reel.findAll('dt'), info_reel.findAll('dd'))}
-        features = [i.string for i in soup.findAll('article')[3].findAll('ul')[0]]
+        try:
+            features = [i.string for i in soup.findAll('article')[3].findAll('ul')[0]]
+        except IndexError:
+            features = ['NaN']
         # for i in info_reel.findAll('div', recursive=False):
         #     category_key = i.find('div').string
         #     category_values = [p.string for p in i.findAll('p')]
