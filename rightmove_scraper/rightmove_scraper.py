@@ -19,7 +19,9 @@ class RightmoveScraper:
 
         self.done = []
         with engine.begin() as con:
-            con.execute(f"""delete from rightmove.rightmove_data where date = '{self.date}'""")
+            query = f"""delete from rightmove.rightmove_data where date = '{self.date}'"""
+            print(query)
+            con.execute(query)
         with engine.begin() as con:
             con.execute(f"""; delete from rightmove.rightmove_features where date = '{self.date}'""")
 
