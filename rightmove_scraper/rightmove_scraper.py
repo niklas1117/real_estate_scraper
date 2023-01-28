@@ -1,14 +1,11 @@
 from datetime import date
 from pathlib import Path
-from tqdm import tqdm 
 
 import pandas as pd
-from bs4 import BeautifulSoup
-
-from rightmove_scraper.support_functions import (url_to_html, string_to_int, 
-    sqm_from_string, sqft_from_string, save_image)
+from tqdm import tqdm
 
 from rightmove_scraper.database_setup import engine
+from rightmove_scraper.support_functions import string_to_int, url_to_html
 
 HOME_PATH = Path.home()
 
@@ -23,8 +20,9 @@ class RightmoveScraper:
         self.done = []
         with engine.begin() as con:
             pd.read_sql(f"""
-                delete table rightmove_data where date = '{self.date}';
-                delete table rightmove_features where date = '{self.date}';
+                use rightmove;
+                delete from rightmove_data where date = '{self.date}';
+                delete from rightmove_features where date = '{self.date}';
                 """, con)
 
 
