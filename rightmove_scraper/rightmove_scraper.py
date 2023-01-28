@@ -74,7 +74,10 @@ class RightmoveScraper:
                         features['DATE'] = self.date
                         features.to_sql('rightmove_features', con, 
                             if_exists='append', index=False)
+            
             del page_attributes_df, feature_dict
+
+            page_n += 1
     
 
     def get_property_ids(self, region:str, page_n:int):
