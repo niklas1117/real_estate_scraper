@@ -100,9 +100,10 @@ class RightmoveScraper:
 
     def scrape_id_list(self, property_ids):
         attributes_list = []
+        feature_dict = {}
         for property_id in property_ids: 
             try:
-                individual_attributes = self.scrape_attributes(property_id)
+                individual_attributes, feature_dict[property_id] = self.scrape_attributes(property_id)
                 attributes_list.append(individual_attributes)
             except AttributeError:
                 pass
