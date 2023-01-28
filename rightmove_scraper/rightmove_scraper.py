@@ -23,6 +23,7 @@ class RightmoveScraper:
                 use rightmove;
                 delete from rightmove_data where date = '{self.date}';
                 delete from rightmove_features where date = '{self.date}';
+                select 1;
                 """, con)
 
 
