@@ -21,7 +21,7 @@ class RightmoveScraper:
         self.done = []
         if delete:
             with engine.begin() as con:
-                query = f"""delete from rightmove_data where date = '{self.date.strftime('%Y%m%d')}' and mode = '{self.mode}'"""
+                query = f"""delete from rightmove_data where date = '{self.date.strftime('%Y%m%d')}'"""
                 con.execute(query)
                 print(f"deleted rightmove_data on {self.date.strftime('%Y%m%d')}")
             with engine.begin() as con:
