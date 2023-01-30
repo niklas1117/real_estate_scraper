@@ -13,20 +13,21 @@ HOME_PATH = Path.home()
 class RightmoveScraper:
 
 
-    def __init__(self, buy:bool=True):
+    def __init__(self, buy:bool=True, delete=True):
         self.mode = 'SALE' if buy else 'LET'
         self.region_mode = 'sale' if buy else 'rent'
         self.date = date.today()
 
         self.done = []
-        with engine.begin() as con:
-            query = f"""delete from rightmove_data where date = '{self.date.strftime('%Y%m%d')}'"""
-            con.execute(query)
-            print(f"deleted rightmove_data on {self.date.strftime('%Y%m%d')}")
-        with engine.begin() as con:
-            query = f"""delete from rightmove_features where date = '{self.date.strftime('%Y%m%d')}'"""
-            con.execute(query)
-            print(f"deleted rightmove_features on {self.date.strftime('%Y%m%d')}")
+        if delete:
+            with engine.begin() as con:
+                query = f"""delete from rightmove_data where date = '{self.date.strftime('%Y%m%d')}' and mode = '{self.mode}'"""
+                con.execute(query)
+                print(f"deleted rightmove_data on {self.date.strftime('%Y%m%d')}")
+            with engine.begin() as con:
+                query = f"""delete from rightmove_features where date = '{self.date.strftime('%Y%m%d')}'"""
+                con.execute(query)
+                print(f"deleted rightmove_features on {self.date.strftime('%Y%m%d')}")
 
     def scrape_regions(self, regions:list, save=True, verbose=True):
         for ind, region in enumerate((pbar := tqdm(regions, disable=not verbose))):
